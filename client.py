@@ -12,7 +12,7 @@ max_seq_num = 2**16
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Set the IP address and port number of the server
-server_address = ('10.0.0.228' , 12344)
+server_address = ('localhost' , 12340)
 
 # Connect to the server
 client_socket.connect(server_address)
@@ -57,14 +57,18 @@ def processAck(sock): #function for processing the acknowledgement
                     client_window.popleft()
             else:
                 extra_ack.append(int(d))
-               # print('printing retransmitt ', extra_ack)
+                
+                
                 retransmit(sock)
 
           
         
         window_resize(sock) #change window size
-    #else:
-        #print('entered else DROPPEDDDD')    
+        #print('window size is ', window_size)
+        #print('-----------------------------------------------')
+    else:
+        print('entered else DROPPEDDDD')    
+       # print('-----------------------------------------------')
        
             
 window_increment=0
@@ -73,11 +77,13 @@ def retransmit(sock):
     global window_size
     global window_increment
     i = 0
-    if len(extra_ack)>=20: #checking for 20 out of order packets
+    
+    if len(extra_ack)>=100: #checking for 20 out of order packets
         if len(client_window)>0:
             msg=(str(client_window[i][0])+' ').encode('utf8')
             sock.sendall(msg)
-            #window_size=int(window_size/2) #divide thw window size by half
+            window_size=int(window_size/2) #divide the window size by half
+            
             window_increment=1
             client_window[i][1] = sys_time() #update the time to the current time
             processAck(sock)
@@ -85,7 +91,7 @@ def retransmit(sock):
 
 def window_resize(sock):
     global window_increment
-    maxsize=1000
+    maxsize=1000000
     global window_size
     temp = window_size
     if window_increment==0:
@@ -99,9 +105,16 @@ def window_resize(sock):
         window_size=1
     else:
         window_size=new_window_size
+    if len(client_window)> window_size:
+        window_size=window_size*2
+    #file1.write(str(window_size)+","+str(sys_time())+"\n")
+
     #print('new window size is ',window_size)
-   
+
+#file1 = open("windowsize.txt", 'a')  # append mode
+#file1.write(str(window_size)+","+str(sys_time())+"\n") 
 while 1:
+        print('len of window_size and client size are ', window_size, len(client_window))
         if len( client_window) < window_size:
             #print('what the fuck', client_window)
             client_window.append([seq_counter, sys_time()]) #add the sequence number and the time at which it was sent
@@ -112,6 +125,8 @@ while 1:
             #print(client_window, 'before sending to server')
             processAck(client_socket)
             #print('processing done', client_window, window_size)
+        else:
+            window_size=window_size*2
 
 
 
